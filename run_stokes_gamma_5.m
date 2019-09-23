@@ -29,3 +29,4 @@ step_init = 1;
 scale_pert = 1e-03; %amplitude of initial perturbation
 
 network_script_cluster(T_bed, choice, gamma,bd_x,n_x, bd_z, n_z, dt,t_plot, stepmax,t_init, step_init, index_wavelength, scale_pert, upwind)
+quit
