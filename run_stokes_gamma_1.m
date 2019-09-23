@@ -1,4 +1,4 @@
-N = 4;
+N = 8;
 maxNumCompThreads(N)
 
 T_bed = -0.5;
@@ -6,10 +6,8 @@ choice = 'mono_small';
 gamma = 1;
 index_wavelength = 1;
 
-
-
 % grid parameters
-bd_x = pi/2;
+bd_x = 4*pi;
 bd_z.ice = 4;            %top of the boundary layer
 bd_z.bed = -4;           %bottom of the bed boundary layer
 
