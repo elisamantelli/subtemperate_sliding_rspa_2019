@@ -1,5 +1,3 @@
-# subtemperatesliding_rspa2019_partI
-
 Mantelli, Haseloff and Schoof, ‘Ice sheet flow with thermally activated sliding. Part 1: the role of advection’, RSPA 2019 (MHS)
 
 Mantelli and Schoof, ‘Ice sheet flow with thermally activated sliding. Part 2: the stability of subtemperate regions’, RSPA 2019 (MS)
