@@ -26,8 +26,8 @@ function [fout, faux] = network_subtemp_slab_timedep(v_in,parameters)
 %Jacobian is in network_subtemp_slab_jacobian.m 
 %
 % Input variables are:
-% v_in:          concatenated vector of size (????,1) of the form v_in =
-% [psi;omega; T_ice;T_bed; Q;T_bdy_bed];
+% v_in:          concatenated vector of the form v_in =
+%                [psi;omega; T_ice;T_bed; Q;T_bdy_bed];
 % parameters:    Parameter structure with the following fields
 
 % grid:
@@ -130,8 +130,6 @@ fout = zeros(length(v_in),1);
 
 dpsi_dx = discvar.dpsi_dx;
 dpsi_dz = discvar.dpsi_dz;
-% flux_psi_in = v_in(2*psinodes+1:2*nodes+length(bdy_nodes_inflow));
-% flux_omega_in = v_in(2*nodes+length(bdy_nodes_inflow)+1:2*nodes+2*length(bdy_nodes_inflow));
 
 domega_dx = discvar.domega_dx;
 domega_dz = discvar.domega_dz;
@@ -211,8 +209,6 @@ net_omega_horflux(psi_bdy_nodes_outflow) = net_omega_horflux(psi_bdy_nodes_outfl
 
 %conservation law
 fout(psi_nodes+1:2*psi_nodes) = net_omega_horflux./psi_Delta_x_cell  +  net_omega_verflux./psi_Delta_z_cell;
-%inferred tau_b 
-% taub_balance = -(fout(psi_nodes + psi_bdy_nodes_bed) .* psi_Delta_z_cell(psi_bdy_nodes_bed)/2 - omega(psi_bdy_nodes_bed));
 
 %% VELOCITY FIELD IN THE BOUNDARY LAYER
 %horizontal velocity at T hor edges
@@ -233,8 +229,6 @@ source_Q = 2*Q.*dubed_dx;
 fout(2*psi_nodes+2*T_nodes+1:2*psi_nodes+2*T_nodes+Q_nodes) =  (Q-Q_prev)/dt +net_Qbedflux./Q_Delta_x_cell-source_Q;%
 %% HEAT EQUATION ICE
 %solve dT/dt + d/dX((u_bed)T) + d/dZ[-Z du_b/dX T - dT/dZ] = 0
-%nb: T grid is shifted with respect to psi grid, so T edges correspond to
-%psi centres
 
 %HORIZONTAL HEAT FLUX
 QHa = (u_bed_edges_Tgrid).*T_hor; 
@@ -290,36 +284,3 @@ faux.tau_bed = tau_bed;
 faux.W = W;
 faux.Q =Q;
 faux.vorticityflux = domegadz_bed;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
