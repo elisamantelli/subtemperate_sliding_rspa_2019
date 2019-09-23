@@ -1,50 +1,6 @@
 function [fout, faux] = network_subtemp_slab_timedep_jacobian(v_in,parameters)
-%finite-volume, steady solver of the Stokes problem in the stream function (psi)-vorticity(omega) formulation over a rectangular domain
-%The equations being solved are:
-
-%div(grad psi) = omega, div(grad omega) = 0,
-
-%with stress free ice surface (omega = 0 on z = 1), velocity strengthening friction law (omega = f(psi_z) on z=0) with two different friction coefficients, impermeability of the
-%bed (psi = 0 on z=0), and constant flux (psi = 1 on z=1)
-
-%Jacobian is in temp__BL_jacobian.m 
-%
-%Input variables are:
-%v_in:          concatenated vector of size (2*n_nodes,1) of the form v_in = [psi;omega]
-%parameters:    Parameter structure with the following fields
-
-% grid:
-%               substructure with fields
-%               n_nodes: substructure with fields 'tot' (number of nodes in network), 'ver' (number of nodes for one ice column). 
-%               n_edges: substructure with fields 'hor' and 'vert'. Number of network edges
-%               up_node: substructure with fields 'hor' and 'vert'. List of upstream nodes for each edge
-%               down_node: substructure with fields 'hor' and 'vert'. List of downstream nodes for each edge
-%                   (up_node and down_node together give the data expected
-%                   in a connectivity array)
-%               bdy_nodes: substructure with fields 'flux', 'dir'. Indexes
-%               of nodes where bdy conditions apply
-%               bed_nodes
-%               coor_nodes: substructure with fields 'sigma' and 'eta'. List of
-%               coordinates of nodes
-%               id_node: list of flags (1-2-3) identifying the subdomain
-%               Delta_z: scalar, vertical spacing of nodes
-%               Delta_x_ scalar, hor spacing of nodes
-
-% n_x:          half the number of nodes in the hor direction
-
-% velocity:     character string with the name of the function where the
-%               velocity field is constructed. Function must return a
-%               concatenated vector of u,w at hor and ver edges of the
-%               network; u and w along the boundaries of the domain; the
-%               source term at each node of the network
-
-% alpha:        strength of strain heating
-% nu:           geothermal heating
-% Pe:           Peclet number
-
+%Jacobian of network_subtemp_slab_timedep.m
 %Tested against numerical jacobian. Elisa Mantelli, 13 Nov 2018
-
-
 
 psi_nodes = parameters.grid.psi.n_nodes.tot;                                   %number of nodes
 psi_up_node_ver = parameters.grid.psi.up_node.vert;                            %list (n_edges-by-1 vector) of 'upstream' node for each vertical edge
@@ -147,8 +103,6 @@ dTbedpsi_dTbed_up = Ddiscvar.T_bed.dTpsigrid_dTbed_up;
 dTbedpsi_dTbed_down = Ddiscvar.T_bed.dTpsigrid_dTbed_down;
 
 %construct regularized bedwater content
-% [bedwater, dbedwater] = regularization_bedwater_old(T_bed, parameters);
-% [bedwater_inflow,~] = regularization_bedwater_old(T_bed_in, parameters);
 [f_slide_Tbed, df_slide_Tbed] = regularization_old(T_bed, parameters);
 [f_slide_Tbedpsigrid, df_slide_Tbedpsigrid] = regularization_old(T_bed_psigrid, parameters);
 %% STREAM FUNCTION
@@ -162,22 +116,14 @@ dpsiverflux_dpsi = sparse(psi_up_node_ver,psi_up_node_ver,ddpsidz_dpsiu,psi_node
     (sparse(psi_down_node_ver,psi_up_node_ver,ddpsidz_dpsiu,psi_nodes, psi_nodes)+...
     sparse(psi_down_node_ver, psi_down_node_ver,ddpsidz_dpsid ,psi_nodes, psi_nodes));
 
-%enforce Dirichlet conditions at top and bottom boundaries
-%ice surface: psi = 1
-%dpsidztop = (-9*psi(psi_bdy_nodes_top) + psi(psi_bdy_nodes_top + length(psi_bdy_nodes_top)) +8*psitop)./(3*psi_Delta_z_cell(psi_bdy_nodes_top));
-
 dpsidztop_dpsitop =(-9)./(3*psi_Delta_z_cell(psi_bdy_nodes_top));
 dpsidztop_dpsibtop = 1./(3*psi_Delta_z_cell(psi_bdy_nodes_top));
 
 dpsiverflux_dpsi =  dpsiverflux_dpsi + (sparse(psi_bdy_nodes_top,psi_bdy_nodes_top,dpsidztop_dpsitop,psi_nodes,psi_nodes)+...
     sparse(psi_bdy_nodes_top ,psi_bdy_nodes_top + length(psi_bdy_nodes_top),dpsidztop_dpsibtop,psi_nodes,psi_nodes));
 
-%bed: psi = 0
-%dpsiverflux_dpsi =  dpsiverflux_dpsi - (sparse(psi_bdy_nodes_bed,psi_bdy_nodes_bed,1./(psi_Delta_z_cell(psi_bdy_nodes_bed)/2),psi_nodes,psi_nodes));
-
 dpsiverflux_dpsi =  dpsiverflux_dpsi - (sparse(psi_bdy_nodes_bed,psi_bdy_nodes_bed,9./(3*psi_Delta_z_cell(psi_bdy_nodes_bed)),psi_nodes,psi_nodes))...
         - (sparse(psi_bdy_nodes_bed,psi_bdy_nodes_bed -length(psi_bdy_nodes_bed),-1./(3*psi_Delta_z_cell(psi_bdy_nodes_bed)),psi_nodes,psi_nodes));
-
 
 %periodic boundary conditions
 %flux_psi_in = (psi(psi_bdy_nodes_inflow) -psi(psi_bdy_nodes_outflow))./(psi_Delta_x_cell(psi_bdy_nodes_inflow)/2 + psi_Delta_x_cell(psi_bdy_nodes_outflow)/2);
@@ -197,13 +143,8 @@ Dfoutpsi_dpsi = spdiags(1./psi_Delta_x_cell,0,psi_nodes,psi_nodes)*dpsihorflux_d
 Dfoutpsi_domega = -speye(psi_nodes,psi_nodes);
 fout(1:psi_nodes,:) = [Dfoutpsi_dpsi Dfoutpsi_domega sparse(psi_nodes,2*T_nodes+2*Q_nodes)];
 faux(1:psi_nodes,:) =fout(1:psi_nodes,:);
+
 %% SLIDING LAW
-% u_bed = psi(psi_bdy_nodes_bed)./(psi_Delta_z_cell(psi_bdy_nodes_bed)/2);
-% tau_bed = gamma*(u_bed)./f_slide_Tbedpsigrid; 
-% 
-% dubed_dpsi = 1./(psi_Delta_z_cell(psi_bdy_nodes_bed)/2);
-% dtaubed_dpsi = gamma*(dubed_dpsi)./f_slide_Tbedpsigrid;
-% dtaubed_dTbed = -(tau_bed./f_slide_Tbedpsigrid).*df_slide_Tbedpsigrid;
 u_bed = (9*psi(psi_bdy_nodes_bed) - psi(psi_bdy_nodes_bed - length(psi_bdy_nodes_bed)))./(3*psi_Delta_z_cell(psi_bdy_nodes_bed));
 tau_bed = gamma*(u_bed)./f_slide_Tbedpsigrid; 
 dubed_dpsibed = (9)./(3*psi_Delta_z_cell(psi_bdy_nodes_bed));
@@ -256,16 +197,6 @@ domegaverflux_domega = sparse(psi_up_node_ver,psi_up_node_ver,ddomegadz_domegau,
 %enforce boundary conditions
 %ice surface: omega = 0
 domegaverflux_domega =  domegaverflux_domega + (sparse(psi_bdy_nodes_top,psi_bdy_nodes_top,-1./(psi_Delta_z_cell(psi_bdy_nodes_top)/2),psi_nodes,psi_nodes));
-
-%bed: omega = omega_bed
-% %net_omega_verflux(psi_bdy_nodes_bed) = net_omega_verflux(psi_bdy_nodes_bed) - (omega(psi_bdy_nodes_bed)-tau_bed)./(psi_Delta_z_cell(psi_bdy_nodes_bed)/2);
-% domegaverflux_dpsi = - (sparse(psi_bdy_nodes_bed,psi_bdy_nodes_bed,-dtaubed_dpsi./(psi_Delta_z_cell(psi_bdy_nodes_bed)/2),psi_nodes,psi_nodes));
-% domegaverflux_domega = domegaverflux_domega - (sparse(psi_bdy_nodes_bed,psi_bdy_nodes_bed,1./(psi_Delta_z_cell(psi_bdy_nodes_bed)/2),psi_nodes,psi_nodes));
-% 
-% domegaverflux_dT_bed = spdiags(1./(psi_Delta_z_cell/2),0,psi_nodes,psi_nodes)*(sparse(psi_bdy_nodes_bed,Q_up_node,dtaubed_dTbed.*dTbedpsi_dTbed_up, psi_nodes,Q_nodes)+...
-%     sparse(psi_bdy_nodes_bed,Q_down_node,dtaubed_dTbed.*dTbedpsi_dTbed_down, psi_nodes,Q_nodes));
-
-%domegadz_bed =  (9*omega(psi_bdy_nodes_bed) - omega(psi_bdy_nodes_bed - length(psi_bdy_nodes_bed))-8*tau_bed)./(3*psi_Delta_z_cell(psi_bdy_nodes_bed));
     domegadzbed_dpsibed = (-8*dtaubed_dpsibed)./(3*psi_Delta_z_cell(psi_bdy_nodes_bed));
     domegadzbed_dpsiabed = (-8*dtaubed_dpsiabed)./(3*psi_Delta_z_cell(psi_bdy_nodes_bed));
     domegadzbed_dobed = 9./(3*psi_Delta_z_cell(psi_bdy_nodes_bed));
@@ -494,40 +425,3 @@ Dfoutv_dpsi = dsourceterm_dpsi;
 Dfoutv_dTbed = dsourceterm_dTbed;
 fout(2*psi_nodes+2*T_nodes+Q_nodes+1:2*psi_nodes+2*T_nodes+2*Q_nodes,:) =[ Dfoutv_dpsi sparse(Q_nodes,psi_nodes) Dfoutv_dT Dfoutv_dTb sparse(Q_nodes, Q_nodes) Dfoutv_dTbed];
 faux(2*psi_nodes+2*T_nodes+Q_nodes+1:2*psi_nodes+2*T_nodes+2*Q_nodes,:) = fout(2*psi_nodes+2*T_nodes+Q_nodes+1:2*psi_nodes+2*T_nodes+2*Q_nodes,:);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
