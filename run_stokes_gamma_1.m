@@ -2,23 +2,23 @@ N = 8;
 maxNumCompThreads(N)
 
 T_bed = -0.5;
-choice = 'mono_small';
-gamma = 1;
-index_wavelength = 1;
+choice = 'wn';          %white noise as initial perturbation
+gamma = 1;              %bed friction
+index_wavelength = 1;   
 
 % grid parameters
 bd_x = 4*pi;
 bd_z.ice = 4;            %top of the boundary layer
 bd_z.bed = -4;           %bottom of the bed boundary layer
 
-n_z.psi = 200;
-n_z.Tice = 600;
-n_z.Tbed = 600;
-n_x = 300;
+n_z.psi = 100;
+n_z.Tice = 100;
+n_z.Tbed = 100;
+n_x = 1050;
 
 %timestepping parameters
-dt = 0.005;
-t_plot = 0.1;
+dt = 0.007;
+t_plot = 10*dt;
 stepmax = 1000;
 t_init = 0;
 step_init = 1;
