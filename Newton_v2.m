@@ -47,9 +47,6 @@ function [xout, error_flag, faux] = Newton_v2(f,df,x,parameters,srchparams)
 %
 %Christian Schoof, May 2013
 
-%NOTE: Check against Numerical Recipes for more efficient version; see
-%below for comments regarding line search.
-
     %set up Newton iteration parameters
     if nargin == 5
         if isfield(srchparams,'itmax')
